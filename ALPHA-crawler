@@ -1,0 +1,259 @@
+import requests
+import time
+import os
+from bs4 import BeautifulSoup
+import re
+
+################################################################################
+## functions
+################################################################################
+'''''''''''''''''''''''''''
+get basic info about http page
+'''''''''''''''''''''''''''
+def getHTML(url, method=None):
+    try:
+        useragent = {"user-agent":"Mozilla/4.0"}
+        # act as a Mozilla Browser
+        r = requests.get(url, timeout=30, headers = useragent)
+        r.raise_for_status()
+        r.encoding = r.apparent_encoding
+        if not method:
+            # default method is None, just return Response of the Request
+            return r
+        
+        elif method.lower() == "text":
+            # if method is "text", print the text content of the page
+            return r.text
+        
+        elif method.lower() == "head":
+            # if method is "head", print the header of the head
+            # then return the Head
+            r = requests.head(url)
+            r.encoding = r.apparent_encoding
+            for key in r.headers.keys():
+                print("{}: {}\n".format(key, r.headers[key]))
+            return r.headers
+        
+        elif method.lower() == "fullhead":
+            # if method is "fullhead", print the header of the full page
+            # then return the Respond            
+            for key in r.headers.keys():
+                print("{}: {}\n".format(key, r.headers[key]))
+            return r
+        else:
+            return r
+        
+    except:
+        # if any error raises, return error message
+        print("An anomaly raises.")
+
+'''''''''''''''''''''''''''
+get robots.txt info about the HTML page
+'''''''''''''''''''''''''''
+def getrobot(url):
+    useragent = {"user-agent":"Mozilla/4.0"}
+    # act as a Mozilla Browser   
+    urlrobot = url + "/robots.txt"
+    # access the robots.txt file under the root of the page
+    robots = requests.get(urlrobot, headers = useragent)
+    robots.encoding = robots.apparent_encoding
+    print(robots.text)
+    return robots
+
+'''''''''''''''''''''''''''
+search the whole internet via search engines
+'''''''''''''''''''''''''''
+def search(keyword, engine="google", start_time_refresh=True):
+    useragent = {"user-agent":"Mozilla/4.0"}
+    # pretending to act like a Mozilla Browser
+    global start
+    if start_time_refresh:
+        start = time.time()
+    # the whole process cannot be too long
+    
+    # BEGIN google search needs to change'''
+    if engine.lower() == "google":
+        # default searching engine is google
+        url = "https://www.google.com/search"
+        try:
+            print("Googling...")
+            r = requests.get(url, params={'q':keyword}, headers = useragent, timeout=1)
+            ''' This format seems not working'''
+            print(r.request.url)
+            r.raise_for_status()
+            r.encoding = r.apparent_encoding
+            print("Google succeeded.")
+            print("Length of the searching result: {}".format(len(r.text)))
+            print("Returning results...")
+            return r
+        except:
+            end = time.time()
+            if end - start >= 5:
+                print("Search failed.")
+                return None
+            else:
+                try:
+                    print("Google failed. Trying Baidu...")
+                    return search(keyword, engine="baidu", start_time_refresh=False)
+                # if google failed to load search results
+                # trying Baidu recursively
+                except:
+                    print("Baidu failed. Trying Bing...")
+                    return search(keyword, engine="bing", start_time_refresh=False)
+                # if Baidu failed to load search results
+                # trying Bing recursively            
+    # END google search needs to change'''
+    
+    elif engine.lower() == "baidu":
+        # user can choose to use baidu as search engine
+        url = "http://www.baidu.com/s"
+        try:
+            print("Baiduing...")
+            r = requests.get(url, params = {"wd":keyword}, headers = useragent, timeout=1)
+            print(r.request.url)
+            r.raise_for_status()
+            r.encoding = r.apparent_encoding
+            print("Baidu succeeded.")
+            print("Length of the searching result: {}".format(len(r.text)))
+            print("Returning results..")
+            return r
+        except:
+            end = time.time()
+            if end - start >= 5:
+                print("Search failed.")
+                return None
+            else:            
+                try:
+                    # if Baidu failed to load search results
+                    # trying Bing recursively                
+                    print("Baidu failed. Trying Bing...")
+                    return search(keyword, engine="bing", start_time_refresh=False)
+                except:
+                    # if Bing failed to load search results
+                    # trying google recursively
+                    print("Google failed. Trying Google...")
+                    return search(keyword, engine="google", start_time_refresh=False)
+            
+    elif engine.lower() == "bing":
+        # user can choose to use bing as search engine
+        url = "https://www.bing.com/search"
+        try:
+            print("Binnnng...")
+            r = requests.get(url, params = {'q':keyword}, headers = useragent, timeout=1)
+            r.raise_for_status()
+            r.encoding = r.apparent_encoding
+            print(r.request.url)
+            print("Bing succeeded.")
+            print("Length of the searching result: {}".format(len(r.text)))
+            print("Returning results...")
+            return r
+        except:
+            end = time.time()
+            if end - start >= 5:
+                print("Search failed.")
+                return None
+            else:            
+                try:
+                    # if Bing failed to load search results
+                    # trying google recursively                
+                    print("Bing failed. Trying Google...")
+                    return search(keyword, engine="google", start_time_refresh=False)
+                except:
+                    # if google failed to load search results
+                    # trying Baidu recursively                
+                    print("Google failed. Trying Baidu...")
+                    return search(keyword, engine="baidu", start_time_refresh=False)    
+
+'''''''''''''''''''''''''''
+Download binary resources, i.e., pictures, videos.
+'''''''''''''''''''''''''''
+def DLbin(rcsurl, pathroot, rename=None):
+    # user is required to enter the url for the picture
+    # and where to download the picture
+    try:
+        useragent = {"user-agent":"Mozilla/4.0"}
+        print("Downloading...")
+        if not os.path.exists(pathroot):
+            os.mkdir(pathroot)
+            # if the path does not exist, create the path
+        if not rename:
+            path = pathroot + rcsurl.split('/')[-1]
+        else:
+            path = pathroot + rename
+        if not os.path.exists(path):
+            # if the picture does not exist, save it
+            r = requests.get(rcsurl, headers=useragent)
+            r.raise_for_status()            
+            f = open(path, "wb")
+            f.write(r.content)
+            f.close()   
+            print("Download succeeded!")
+        else:
+            print("File already exists.")
+            print("Download aborted.")
+    except:
+        print("Download failed.")
+
+'''''''''''''''''''''''''''
+looking for location of an IP address, default for current internet environment
+'''''''''''''''''''''''''''
+def IP2lct(ipaddr=None):
+    try:
+        if not ipaddr:
+            url = "http://whatismyipaddress.com/ip/"
+            ipaddr = getHTML("http://bot.whatismyipaddress.com/", "text")
+            rtext = getHTML(url+ipaddr, "text")
+        else:
+            url = "http://whatismyipaddress.com/ip/"
+            rtext = getHTML(url+ipaddr, "text")
+        soup = BeautifulSoup(rtext, "lxml")
+        tagoflocation = str(soup.find(name="script", string=re.compile("Location")))
+        location = tagoflocation[tagoflocation.rfind("General Location"):tagoflocation.rfind("<br>")].split("<br>")[1]
+        print(location)
+    except:
+        print("IP to location conversion failed.")
+
+'''''''''''''''''''''''''''
+extract links in an HTML document
+'''''''''''''''''''''''''''
+def getlinks(url):
+    useragent = {"user-agent":"Mozilla/4.0"}
+    try:
+        r = requests.get(url, headers=useragent)
+        r.raise_for_status()
+        r.encoding = r.apparent_encoding
+        soup = BeautifulSoup(r.text, "lxml")
+        links = []
+        for link in soup.find_all('a'):
+            # in the list of tags of links
+            link_real = link.get("href")
+            if "http" in link_real:
+                # store all links
+                links.append(link_real)
+        return links
+    except:
+        print("Failing to get the links.")
+
+
+################################################################################
+## functions end
+################################################################################
+        
+#''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''#
+#''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''#
+
+################################################################################
+## main function below
+################################################################################
+if __name__ == "__main__":
+    #picurl = "http://image.nationalgeographic.com.cn/userpic/58536/2017/0505120115585368605.jpeg"
+    #path = "F:/00002_Files/"
+    #DLbin(picurl, path,"1234.jpeg")
+    
+    #ip = "121.237.2.60"
+    IP2lct()
+    
+    #r = getHTML("http://www.baidu.com")
+    #soup = parHTML(r)
+    #print(parHTML(r).prettify(), "lxml")
+    #links = getlinks("http://www.baidu.com")
