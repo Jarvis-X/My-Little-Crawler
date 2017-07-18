@@ -9,3 +9,5 @@ Now, can-dos:
   5. look for links in a certain page( I will emphasize on this part later)
 
 Just some basic tricks, I need to work hard.
+# 2017.7.18:
+  program updated, getHTML function deleted
