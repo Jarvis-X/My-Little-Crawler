@@ -3,62 +3,30 @@ import time
 import os
 from bs4 import BeautifulSoup
 import re
+import bs4
 
 ################################################################################
 ## functions
 ################################################################################
 '''''''''''''''''''''''''''
-get basic info about http page
-'''''''''''''''''''''''''''
-def getHTML(url, method=None):
-    try:
-        useragent = {"user-agent":"Mozilla/4.0"}
-        # act as a Mozilla Browser
-        r = requests.get(url, timeout=30, headers = useragent)
-        r.raise_for_status()
-        r.encoding = r.apparent_encoding
-        if not method:
-            # default method is None, just return Response of the Request
-            return r
-        
-        elif method.lower() == "text":
-            # if method is "text", print the text content of the page
-            return r.text
-        
-        elif method.lower() == "head":
-            # if method is "head", print the header of the head
-            # then return the Head
-            r = requests.head(url)
-            r.encoding = r.apparent_encoding
-            for key in r.headers.keys():
-                print("{}: {}\n".format(key, r.headers[key]))
-            return r.headers
-        
-        elif method.lower() == "fullhead":
-            # if method is "fullhead", print the header of the full page
-            # then return the Respond            
-            for key in r.headers.keys():
-                print("{}: {}\n".format(key, r.headers[key]))
-            return r
-        else:
-            return r
-        
-    except:
-        # if any error raises, return error message
-        print("An anomaly raises.")
-
-'''''''''''''''''''''''''''
 get robots.txt info about the HTML page
 '''''''''''''''''''''''''''
 def getrobot(url):
-    useragent = {"user-agent":"Mozilla/4.0"}
-    # act as a Mozilla Browser   
-    urlrobot = url + "/robots.txt"
-    # access the robots.txt file under the root of the page
-    robots = requests.get(urlrobot, headers = useragent)
-    robots.encoding = robots.apparent_encoding
-    print(robots.text)
-    return robots
+    try:
+        useragent = {"user-agent":"Mozilla/4.0"}
+        # act as a Mozilla Browser   
+        urlrobot = url + "/robots.txt"
+        # access the robots.txt file under the root of the page
+        robots = requests.get(urlrobot, headers = useragent)
+        robots.encoding = robots.apparent_encoding
+        text = robots.text
+        if "User-agent" in text:
+            print(text)
+            return text
+        else:
+            print("No valid robots.txt found.")
+    except:
+        print("An error occurs!")
 
 '''''''''''''''''''''''''''
 search the whole internet via search engines
@@ -199,20 +167,30 @@ looking for location of an IP address, default for current internet environment
 '''''''''''''''''''''''''''
 def IP2lct(ipaddr=None):
     try:
+        url = "http://whatismyipaddress.com/ip/"
         if not ipaddr:
-            url = "http://whatismyipaddress.com/ip/"
-            ipaddr = getHTML("http://bot.whatismyipaddress.com/", "text")
-            rtext = getHTML(url+ipaddr, "text")
-        else:
-            url = "http://whatismyipaddress.com/ip/"
-            rtext = getHTML(url+ipaddr, "text")
-        soup = BeautifulSoup(rtext, "lxml")
+            ipaddr = requests.get("http://bot.whatismyipaddress.com/").text
+        r = requests.get(url+ipaddr)
+        r.raise_for_status()
+        r.encoding = r.apparent_encoding
+        soup = BeautifulSoup(r.text, "lxml")
         tagoflocation = str(soup.find(name="script", string=re.compile("Location")))
         location = tagoflocation[tagoflocation.rfind("General Location"):tagoflocation.rfind("<br>")].split("<br>")[1]
+        x, y = tuple(tagoflocation[tagoflocation.find("[")+1:tagoflocation.find(']')].split(','))
+        x, y = float(x),float(y)
+        if x<0:
+            x = str(-x) + 'S'
+        else:
+            x = str(x) + 'N'
+        if y<0:
+            y = str(-y) + 'W'
+        else:
+            y = str(y) + 'E'
         print(location)
+        print("{}, {}".format(x, y))
     except:
-        print("IP to location conversion failed.")
-
+        print("IP to Geolocation conversion failed.")
+            
 '''''''''''''''''''''''''''
 extract links in an HTML document
 '''''''''''''''''''''''''''
@@ -250,7 +228,7 @@ if __name__ == "__main__":
     #path = "F:/00002_Files/"
     #DLbin(picurl, path,"1234.jpeg")
     
-    #ip = "121.237.2.60"
+    ip = "4.237.2.60"
     IP2lct()
     
     #r = getHTML("http://www.baidu.com")
