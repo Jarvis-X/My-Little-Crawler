@@ -11,3 +11,5 @@ Now, can-dos:
 Just some basic tricks, I need to work hard.
 # 2017.7.18:
   program updated, getHTML function deleted
+# 2017.8.31:
+  program updated, now we can download captcha pictures and login websites with captcha by keeping the cookies
