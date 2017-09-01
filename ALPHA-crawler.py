@@ -13,7 +13,7 @@ get robots.txt info about the HTML page
 '''''''''''''''''''''''''''
 def getrobot(url):
     try:
-        useragent = {"user-agent":"Mozilla/4.0"}
+        useragent = {"User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:54.0) Gecko/20100101 Firefox/54.0"}
         # act as a Mozilla Browser   
         urlrobot = url + "/robots.txt"
         # access the robots.txt file under the root of the page
@@ -32,7 +32,7 @@ def getrobot(url):
 search the whole internet via search engines
 '''''''''''''''''''''''''''
 def search(keyword, engine="google", start_time_refresh=True):
-    useragent = {"user-agent":"Mozilla/4.0"}
+    useragent = {"User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:54.0) Gecko/20100101 Firefox/54.0"}
     # pretending to act like a Mozilla Browser
     global start
     if start_time_refresh:
@@ -139,7 +139,7 @@ def DLbin(rcsurl, pathroot, rename=None):
     # user is required to enter the url for the picture
     # and where to download the picture
     try:
-        useragent = {"user-agent":"Mozilla/4.0"}
+        useragent = {"User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:54.0) Gecko/20100101 Firefox/54.0"}
         print("Downloading...")
         if not os.path.exists(pathroot):
             os.mkdir(pathroot)
@@ -152,9 +152,8 @@ def DLbin(rcsurl, pathroot, rename=None):
             # if the picture does not exist, save it
             r = requests.get(rcsurl, headers=useragent)
             r.raise_for_status()            
-            f = open(path, "wb")
-            f.write(r.content)
-            f.close()   
+            with open(path, "wb") as f:
+                f.write(r.content) 
             print("Download succeeded!")
         else:
             print("File already exists.")
@@ -195,7 +194,7 @@ def IP2lct(ipaddr=None):
 extract links in an HTML document
 '''''''''''''''''''''''''''
 def getlinks(url):
-    useragent = {"user-agent":"Mozilla/4.0"}
+    useragent = {"User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:54.0) Gecko/20100101 Firefox/54.0"}
     try:
         r = requests.get(url, headers=useragent)
         r.raise_for_status()
@@ -205,14 +204,44 @@ def getlinks(url):
         for link in soup.find_all('a'):
             # in the list of tags of links
             link_real = link.get("href")
-            if "http" in link_real:
+            if "http" in str(link_real):
                 # store all links
                 links.append(link_real)
         return links
     except:
         print("Failing to get the links.")
 
-
+'''''''''''''''''''''''''''
+login websites with cookies
+'''''''''''''''''''''''''''
+def login_cookie(websitelogin, captchaurl, username, password):
+    head = {"User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:54.0) Gecko/20100101 Firefox/54.0"}
+    with requests.session() as s:
+        mode = {"mode":"imagecaptcha"}  # may change according to different websites
+        r = s.get(websitelogin, params = mode)
+        r.encoding = r.apparent_encoding
+        cookie = r.cookies  # save the cookies
+        soup = BeautifulSoup(r.text, "lxml")
+        rnd = str(soup.find(name="img", id="captcha_img").get("src")).split('?')[-1].split('=')[-1] # find out rnd number for the cap-picture
+        param = {"rnd" : rnd}
+        r = s.get(captchaurl, params=param, headers=head)
+        pathroot = "F:/00000_testfiles/"    # the location on my computer saving the captcha pics
+        print("Downloading...")
+        if not os.path.exists(pathroot):
+            os.mkdir(pathroot)
+        path = pathroot + "captcha.jpg"
+        r.raise_for_status()
+        with open(path, "wb") as f:
+            f.write(r.content) 
+        print("Download succeeded!")
+        word = input("type in the captcha:\t")
+        postdata = {"action":"login", "name":username, "pass":password, "use_old_captcha":1, "captcha":word}    # vary for different sites
+        s.post("https://www.furaffinity.net/login/", data=postdata, cookies=cookie)
+        r = s.get(websitelogin)
+        soup = BeautifulSoup(r.text, "lxml")
+        if soup.find(name='b', string="Please log in!"):
+            print("login failed.\n\n\n\n\n\n\n")
+        print(soup.prettify())  # check if successful
 ################################################################################
 ## functions end
 ################################################################################
@@ -228,10 +257,6 @@ if __name__ == "__main__":
     #path = "F:/00002_Files/"
     #DLbin(picurl, path,"1234.jpeg")
     
-    ip = "4.237.2.60"
-    IP2lct()
-    
-    #r = getHTML("http://www.baidu.com")
-    #soup = parHTML(r)
-    #print(parHTML(r).prettify(), "lxml")
+    #ip = "4.237.2.60"
+    #IP2lct()
     #links = getlinks("http://www.baidu.com")
